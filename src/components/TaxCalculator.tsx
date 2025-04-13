@@ -100,6 +100,7 @@ const TaxCalculator = () => {
         description: "Your tax has been calculated successfully",
       });
     } catch (error) {
+      console.error("Calculation error:", error);
       toast({
         title: "Calculation Error",
         description: "There was a problem calculating your tax",
@@ -129,6 +130,7 @@ const TaxCalculator = () => {
       });
       fetchPreviousCalculations();
     } catch (error) {
+      console.error("Error saving calculation:", error);
       toast({
         title: "Error",
         description: "Failed to save your calculation",

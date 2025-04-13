@@ -28,6 +28,9 @@ export const calculateTax = (formData: TaxFormData, userType: string): TaxResult
       break;
   }
 
+  // Make sure taxable income isn't negative
+  taxableIncome = Math.max(0, taxableIncome);
+
   // Common tax slab calculation for all user types
   if (taxableIncome <= 250000) {
     taxAmount = 0;
@@ -59,7 +62,11 @@ export const saveTaxCalculation = async (userId: string, formData: TaxFormData, 
   const assessmentYear = `${currentYear}-${currentYear + 1}`;
   
   try {
-    const { error } = await supabase.from('tax_calculations').insert({
+    console.log("Saving calculation for user:", userId);
+    console.log("Form data:", formData);
+    console.log("Results:", result);
+    
+    const { data, error } = await supabase.from('tax_calculations').insert({
       user_id: userId,
       assessment_year: assessmentYear,
       salary_income: formData.salary || 0,
@@ -83,19 +90,24 @@ export const saveTaxCalculation = async (userId: string, formData: TaxFormData, 
       tax_payable: result.taxAmount,
       cess: result.finalLiability - result.taxAmount,
       final_tax: result.finalLiability,
-    });
+    }).select();
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error in saveTaxCalculation:", error);
+      throw error;
+    }
     
-    return true;
+    console.log("Calculation saved successfully:", data);
+    return data;
   } catch (error) {
     console.error('Error saving tax calculation:', error);
-    return false;
+    throw error;
   }
 };
 
 export const fetchUserTaxCalculations = async (userId: string) => {
   try {
+    console.log("Fetching calculations for user:", userId);
     const { data, error } = await supabase
       .from('tax_calculations')
       .select('*')
@@ -103,8 +115,12 @@ export const fetchUserTaxCalculations = async (userId: string) => {
       .order('created_at', { ascending: false })
       .limit(5);
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error in fetchUserTaxCalculations:", error);
+      throw error;
+    }
     
+    console.log("Fetched calculations:", data);
     return data || [];
   } catch (error) {
     console.error('Error fetching tax calculations:', error);

@@ -6,45 +6,64 @@ import TaxOnboarding from '@/components/TaxOnboarding';
 import { useAuth } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 const Calculator = () => {
   const [showOnboarding, setShowOnboarding] = useState(true);
   const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   
   // Check if user has completed profile setup
   useEffect(() => {
     if (user) {
       const checkProfileCompletion = async () => {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error('Error checking profile:', error);
-          return;
-        }
-        
-        // If user has a profile with key information, skip onboarding
-        if (data && data.full_name && data.pan_number) {
-          setShowOnboarding(false);
+        setIsLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          
+          if (error) {
+            console.error('Error checking profile:', error);
+            return;
+          }
+          
+          // If user has a profile with key information, skip onboarding
+          if (data && data.full_name && data.pan_number) {
+            setShowOnboarding(false);
+          }
+        } catch (err) {
+          console.error("Failed to check profile:", err);
+        } finally {
+          setIsLoading(false);
         }
       };
       
       checkProfileCompletion();
+    } else {
+      setIsLoading(false);
     }
   }, [user]);
   
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
+    toast({
+      title: "Profile Complete",
+      description: "Your tax profile has been set up successfully.",
+    });
   };
   
   return (
     <ProtectedRoute>
       <Layout>
         <div className="max-w-4xl mx-auto">
-          {showOnboarding ? (
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-taxBlue"></div>
+            </div>
+          ) : showOnboarding ? (
             <TaxOnboarding onComplete={handleOnboardingComplete} />
           ) : (
             <>
