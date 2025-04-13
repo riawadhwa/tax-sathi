@@ -1,15 +1,9 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { TaxResult } from "@/types/ProfileTypes";
 
 interface TaxFormData {
   [key: string]: number;
-}
-
-interface TaxResult {
-  taxableIncome: number;
-  taxAmount: number;
-  taxSlab: string;
-  finalLiability: number;
 }
 
 export const calculateTax = (formData: TaxFormData, userType: string): TaxResult => {

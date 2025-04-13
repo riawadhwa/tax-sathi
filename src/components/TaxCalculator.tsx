@@ -16,6 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import { Loader2, Save, History } from 'lucide-react';
 import { CustomTooltip } from "@/components/ui/CustomTooltip";
 import { Info } from "lucide-react";
+import { TaxResult } from '@/types/ProfileTypes';
 
 type UserType = 'individual' | 'business' | 'startup';
 
@@ -42,7 +43,7 @@ const TaxCalculator = () => {
     esopValue: 0,
     capitalGains: 0,
   });
-  const [result, setResult] = useState<Record<string, number | string>>({
+  const [result, setResult] = useState<TaxResult>({
     taxableIncome: 0,
     taxAmount: 0,
     taxSlab: '',
@@ -99,7 +100,7 @@ const TaxCalculator = () => {
 
     setIsSaving(true);
     try {
-      await saveTaxCalculation(user.id, formData, userType, result as any);
+      await saveTaxCalculation(user.id, formData, userType, result);
       toast({
         title: "Success",
         description: "Your tax calculation has been saved",
