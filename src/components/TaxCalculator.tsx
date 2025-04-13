@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,6 +14,8 @@ import {
 } from './TaxCalculatorService';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Save, History } from 'lucide-react';
+import { CustomTooltip } from "@/components/ui/CustomTooltip";
+import { Info } from "lucide-react";
 
 type UserType = 'individual' | 'business' | 'startup';
 
@@ -165,7 +166,15 @@ const TaxCalculator = () => {
                       <h3 className="font-medium text-lg text-gray-800">{section}</h3>
                       {sectionFields.map((field) => (
                         <div key={field.id} className="space-y-2">
-                          <Label htmlFor={field.id}>{field.label}</Label>
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={field.id}>{field.label}</Label>
+                            <CustomTooltip 
+                              content={`Enter your ${field.label.toLowerCase()}`}
+                              side="right"
+                            >
+                              <Info className="h-4 w-4 text-gray-500" />
+                            </CustomTooltip>
+                          </div>
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                             <Input
