@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Card, 
   CardContent,
@@ -30,8 +29,15 @@ import {
 import { useForm } from 'react-hook-form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info, ArrowRight, ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+
+interface TaxOnboardingProps {
+  onComplete: () => void;
+}
 
 const filingStatuses = [
   { value: 'single', label: 'Single' },
@@ -89,112 +95,9 @@ type OnboardingStepProps = {
   totalSteps: number;
 };
 
-const AccountCreationStep: React.FC<OnboardingStepProps> = ({ onNext, currentStep, totalSteps }) => {
-  const form = useForm({
-    defaultValues: {
-      email: '',
-      password: '',
-      confirmPassword: '',
-      acceptTerms: false
-    }
-  });
-
-  const handleSubmit = (data: any) => {
-    console.log('Account data:', data);
-    onNext();
-  };
-
-  return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Create Your Account</CardTitle>
-        <CardDescription>Let's start by setting up your login credentials</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email Address</FormLabel>
-                  <FormControl>
-                    <Input placeholder="youremail@example.com" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    We'll send a verification link to this email
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="Create a strong password" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Use at least 8 characters with a mix of letters, numbers, and symbols
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="Confirm your password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="acceptTerms"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox 
-                      checked={field.value} 
-                      onCheckedChange={field.onChange} 
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>
-                      I accept the Terms of Service and Privacy Policy
-                    </FormLabel>
-                    <FormDescription>
-                      By checking this box, you agree to our Terms of Service and Privacy Policy
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex justify-end">
-              <Button type="submit">Continue <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
-  );
-};
-
 const PersonalInfoStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, currentStep, totalSteps }) => {
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const form = useForm({
     defaultValues: {
       fullName: '',
@@ -207,9 +110,73 @@ const PersonalInfoStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, c
     }
   });
 
-  const handleSubmit = (data: any) => {
-    console.log('Personal info data:', data);
-    onNext();
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          
+          if (error) throw error;
+          
+          if (data) {
+            form.reset({
+              fullName: data.full_name || '',
+              panNumber: data.pan_number || '',
+              dateOfBirth: data.date_of_birth ? new Date(data.date_of_birth).toISOString().split('T')[0] : '',
+              phoneNumber: data.phone_number || '',
+              address: data.address || '',
+              filingStatus: data.filing_status || '',
+              state: data.state || ''
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching profile:', error);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
+
+  const handleSubmit = async (data: any) => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: data.fullName,
+          pan_number: data.panNumber,
+          date_of_birth: data.dateOfBirth || null,
+          phone_number: data.phoneNumber,
+          address: data.address,
+          filing_status: data.filingStatus,
+          state: data.state
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: 'Profile updated',
+        description: 'Your personal information has been saved.',
+      });
+      
+      onNext();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update profile',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -242,16 +209,14 @@ const PersonalInfoStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, c
                 <FormItem>
                   <div className="flex items-center gap-2">
                     <FormLabel>PAN Number</FormLabel>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="w-[200px]">Your Permanent Account Number (PAN) is required for tax filing in India</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <Tooltip>
+                      <TooltipContent>
+                        <p className="w-[200px]">Your Permanent Account Number (PAN) is required for tax filing in India</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                   <FormControl>
                     <Input placeholder="ABCDE1234F" {...field} />
@@ -315,7 +280,7 @@ const PersonalInfoStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, c
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Filing Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select filing status" />
@@ -340,7 +305,7 @@ const PersonalInfoStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, c
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>State of Residence</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select your state" />
@@ -361,11 +326,19 @@ const PersonalInfoStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, c
             </div>
             
             <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={onPrevious}>
+              <Button type="button" variant="outline" onClick={onPrevious} disabled={currentStep === 0}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <Button type="submit">
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </form>
@@ -376,6 +349,8 @@ const PersonalInfoStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, c
 };
 
 const IncomeSourcesStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, currentStep, totalSteps }) => {
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const form = useForm({
     defaultValues: {
       employmentType: '',
@@ -385,9 +360,38 @@ const IncomeSourcesStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, 
     }
   });
 
-  const handleSubmit = (data: any) => {
-    console.log('Income sources data:', data);
-    onNext();
+  const handleSubmit = async (data: any) => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          employment_type: data.employmentType,
+          has_investment_income: data.hasInvestmentIncome,
+          has_rental_income: data.hasRentalIncome,
+          has_other_income: data.hasOtherIncome
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      toast({
+        title: 'Income sources saved',
+        description: 'Your income source information has been updated.',
+      });
+      
+      onNext();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update income sources',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -405,7 +409,7 @@ const IncomeSourcesStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Primary Employment Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select employment type" />
@@ -497,8 +501,16 @@ const IncomeSourcesStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, 
               <Button type="button" variant="outline" onClick={onPrevious}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <Button type="submit">
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </form>
@@ -508,7 +520,7 @@ const IncomeSourcesStep: React.FC<OnboardingStepProps> = ({ onNext, onPrevious, 
   );
 };
 
-const CompleteStep: React.FC<OnboardingStepProps> = ({ onPrevious, currentStep, totalSteps }) => {
+const CompleteStep: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader className="text-center">
@@ -523,15 +535,15 @@ const CompleteStep: React.FC<OnboardingStepProps> = ({ onPrevious, currentStep, 
         <p>Your next step is to explore the tax calculator and document checklists.</p>
       </CardContent>
       <CardFooter className="flex justify-center">
-        <Button>Go to Tax Calculator</Button>
+        <Button onClick={onComplete}>Go to Tax Calculator</Button>
       </CardFooter>
     </Card>
   );
 };
 
-const TaxOnboarding: React.FC = () => {
+const TaxOnboarding: React.FC<TaxOnboardingProps> = ({ onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const totalSteps = 4;
+  const totalSteps = 3;
   
   const nextStep = () => {
     if (currentStep < totalSteps - 1) {
@@ -548,13 +560,6 @@ const TaxOnboarding: React.FC = () => {
   const progress = ((currentStep + 1) / totalSteps) * 100;
   
   const steps = [
-    <AccountCreationStep 
-      key="account" 
-      onNext={nextStep} 
-      onPrevious={previousStep} 
-      currentStep={currentStep} 
-      totalSteps={totalSteps} 
-    />,
     <PersonalInfoStep 
       key="personal" 
       onNext={nextStep} 
@@ -570,11 +575,8 @@ const TaxOnboarding: React.FC = () => {
       totalSteps={totalSteps} 
     />,
     <CompleteStep 
-      key="complete" 
-      onNext={nextStep} 
-      onPrevious={previousStep} 
-      currentStep={currentStep} 
-      totalSteps={totalSteps} 
+      key="complete"
+      onComplete={onComplete}
     />
   ];
   
