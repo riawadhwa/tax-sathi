@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (event === 'SIGNED_IN') {
           toast({
             title: 'Welcome back!',
@@ -56,18 +56,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, metadata?: { full_name: string }) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signUp({ 
-        email, 
+      const { error } = await supabase.auth.signUp({
+        email,
         password,
         options: {
           data: metadata
         }
       });
-      
+
       if (error) {
         throw error;
       }
-      
+
       toast({
         title: 'Account created',
         description: 'Please check your email to verify your account.',
@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      
+
       if (error) {
         throw error;
       }
