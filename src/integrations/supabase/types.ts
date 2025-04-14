@@ -8,6 +8,9 @@ export type Json =
 
 export type Database = {
   public: {
+    Enums: {
+      user_tax_type: 'individual' | 'business' | 'startup'
+    },
     Tables: {
       documents: {
         Row: {
@@ -193,6 +196,13 @@ export type Database = {
           total_income: number | null
           updated_at: string | null
           user_id: string
+          rental_income: number | null;
+          section_80G: number | null;
+          section_80E: number | null;
+          section_24: number | null;
+          business_expenses: number | null;
+          depreciation: number | null;
+          esop_value: number | null;
         }
         Insert: {
           advance_tax_paid?: number | null
@@ -222,6 +232,13 @@ export type Database = {
           total_income?: number | null
           updated_at?: string | null
           user_id: string
+          rental_income?: number | null;
+          section_80G?: number | null;
+          section_80E?: number | null;
+          section_24?: number | null;
+          business_expenses?: number | null;
+          depreciation?: number | null;
+          esop_value?: number | null;
         }
         Update: {
           advance_tax_paid?: number | null
@@ -251,6 +268,13 @@ export type Database = {
           total_income?: number | null
           updated_at?: string | null
           user_id?: string
+          rental_income?: number | null;
+          section_80G?: number | null;
+          section_80E?: number | null;
+          section_24?: number | null;
+          business_expenses?: number | null;
+          depreciation?: number | null;
+          esop_value?: number | null;
         }
         Relationships: []
       }
@@ -394,9 +418,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
-    }
-    Enums: {
       [_ in never]: never
     }
     CompositeTypes: {
