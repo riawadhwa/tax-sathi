@@ -1,4 +1,3 @@
-
 export interface Profile {
   id: string;
   full_name: string;
@@ -10,7 +9,7 @@ export interface Profile {
   user_type: string;
   created_at: string;
   updated_at: string;
-  
+
   // Add optional fields for tax context
   filing_status?: string;
   state?: string;
@@ -22,4 +21,18 @@ export interface TaxResult {
   taxAmount: number;
   taxSlab: string;
   finalLiability: number;
+}
+
+export interface TaxRegimeResult {
+  taxableIncome: number;
+  taxAmount: number;
+  taxSlab: string;
+  finalLiability: number;
+}
+
+export interface TaxComparisonResult {
+  oldRegime: TaxRegimeResult;
+  newRegime: TaxRegimeResult;
+  recommendedRegime: 'old' | 'new';
+  savings: number;
 }
