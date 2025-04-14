@@ -1,43 +1,57 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { TaxResult } from "@/types/ProfileTypes";
+import { TaxRegimeResult, TaxComparisonResult } from "@/types/ProfileTypes";
 
 interface TaxFormData {
   [key: string]: number;
 }
 
-export const calculateTax = (formData: TaxFormData, userType: string): TaxResult => {
+// Helper function for Indian number formatting
+export const formatIndianNumber = (num: number): string => {
+  return new Intl.NumberFormat('en-IN').format(num);
+};
+
+export const calculateOldRegimeTax = (formData: TaxFormData, userType: string): TaxRegimeResult => {
   let taxableIncome = 0;
   let taxAmount = 0;
   let taxSlab = '';
   let finalLiability = 0;
 
+  // Calculate taxable income based on user type
   switch (userType) {
     case 'individual':
-      taxableIncome = formData.salary + formData.otherIncome + formData.rentalIncome - 
-                     (formData.section80C + formData.section80D + formData.section80G);
+      taxableIncome = formData.salary + formData.otherIncome + formData.rentalIncome -
+        (formData.section80C + formData.section80D + formData.section80G);
+      // Standard deduction of ₹50,000 for salaried individuals
+      taxableIncome -= Math.min(formData.salary, 50000);
       break;
 
     case 'business':
       taxableIncome = formData.businessIncome - formData.businessExpenses - formData.depreciation;
+      // Business can still claim some deductions
+      taxableIncome -= (formData.section80D || 0);
       break;
 
     case 'startup':
-      taxableIncome = formData.salary + formData.esopValue + formData.capitalGains - 
-                     (formData.section80C + formData.section80D);
+      taxableIncome = formData.salary + formData.esopValue + formData.capitalGains -
+        (formData.section80C + formData.section80D);
+      // Standard deduction of ₹50,000 for salaried individuals
+      taxableIncome -= Math.min(formData.salary, 50000);
       break;
   }
 
-  // Make sure taxable income isn't negative
   taxableIncome = Math.max(0, taxableIncome);
 
-  // Common tax slab calculation for all user types
+  // Old regime tax slabs (FY 2023-24) with rebate under section 87A
+  taxAmount = 0;
   if (taxableIncome <= 250000) {
-    taxAmount = 0;
     taxSlab = '0%';
   } else if (taxableIncome <= 500000) {
     taxAmount = (taxableIncome - 250000) * 0.05;
     taxSlab = '5%';
+    // Rebate under section 87A (up to ₹12,500)
+    if (taxableIncome <= 750000) {
+      taxAmount = Math.max(0, taxAmount - Math.min(taxAmount, 12500));
+    }
   } else if (taxableIncome <= 1000000) {
     taxAmount = 12500 + (taxableIncome - 500000) * 0.2;
     taxSlab = '20%';
@@ -46,26 +60,119 @@ export const calculateTax = (formData: TaxFormData, userType: string): TaxResult
     taxSlab = '30%';
   }
 
-  // Apply cess (4%)
+  // Apply surcharge for income > 50 lakhs
+  let surcharge = 0;
+  if (taxableIncome > 5000000 && taxableIncome <= 10000000) {
+    surcharge = taxAmount * 0.1; // 10% surcharge
+  } else if (taxableIncome > 10000000) {
+    surcharge = taxAmount * 0.15; // 15% surcharge
+  }
+  taxAmount += surcharge;
+
+  // Apply cess (4% health and education cess)
   finalLiability = taxAmount + (taxAmount * 0.04);
 
   return {
     taxableIncome: Math.round(taxableIncome),
     taxAmount: Math.round(taxAmount),
-    taxSlab,
+    taxSlab: `${taxSlab}${surcharge > 0 ? ` + ${surcharge > taxAmount * 0.1 ? '15%' : '10%'} surcharge` : ''}`,
     finalLiability: Math.round(finalLiability),
   };
 };
 
-export const saveTaxCalculation = async (userId: string, formData: TaxFormData, userType: string, result: TaxResult) => {
+export const calculateNewRegimeTax = (formData: TaxFormData, userType: string): TaxRegimeResult => {
+  let taxableIncome = 0;
+  let taxAmount = 0;
+  let taxSlab = '';
+  let finalLiability = 0;
+
+  // Calculate taxable income (no deductions in new regime except standard deduction for salaried)
+  switch (userType) {
+    case 'individual':
+      // Standard deduction of ₹50,000 for salaried individuals
+      taxableIncome = Math.max(0, formData.salary - 50000) + formData.otherIncome + formData.rentalIncome;
+      break;
+
+    case 'business':
+      taxableIncome = formData.businessIncome - formData.businessExpenses - formData.depreciation;
+      break;
+
+    case 'startup':
+      // Standard deduction of ₹50,000 for salaried individuals
+      taxableIncome = Math.max(0, formData.salary - 50000) + formData.esopValue + formData.capitalGains;
+      break;
+  }
+
+  taxableIncome = Math.max(0, taxableIncome);
+
+  // New regime tax slabs (FY 2023-24) with rebate under section 87A
+  if (taxableIncome <= 250000) {
+    taxAmount = 0;
+    taxSlab = '0%';
+  } else if (taxableIncome <= 500000) {
+    taxAmount = (taxableIncome - 250000) * 0.05;
+    taxSlab = '5%';
+    // Rebate under section 87A (up to ₹25,000)
+    if (taxableIncome <= 700000) {
+      taxAmount = Math.max(0, taxAmount - Math.min(taxAmount, 25000));
+    }
+  } else if (taxableIncome <= 750000) {
+    taxAmount = 12500 + (taxableIncome - 500000) * 0.1;
+    taxSlab = '10%';
+  } else if (taxableIncome <= 1000000) {
+    taxAmount = 37500 + (taxableIncome - 750000) * 0.15;
+    taxSlab = '15%';
+  } else if (taxableIncome <= 1250000) {
+    taxAmount = 75000 + (taxableIncome - 1000000) * 0.2;
+    taxSlab = '20%';
+  } else if (taxableIncome <= 1500000) {
+    taxAmount = 125000 + (taxableIncome - 1250000) * 0.25;
+    taxSlab = '25%';
+  } else {
+    taxAmount = 187500 + (taxableIncome - 1500000) * 0.3;
+    taxSlab = '30%';
+  }
+
+  // Apply surcharge for income > 50 lakhs
+  let surcharge = 0;
+  if (taxableIncome > 5000000 && taxableIncome <= 10000000) {
+    surcharge = taxAmount * 0.1; // 10% surcharge
+  } else if (taxableIncome > 10000000) {
+    surcharge = taxAmount * 0.15; // 15% surcharge
+  }
+  taxAmount += surcharge;
+
+  // Apply cess (4% health and education cess)
+  finalLiability = taxAmount + (taxAmount * 0.04);
+
+  return {
+    taxableIncome: Math.round(taxableIncome),
+    taxAmount: Math.round(taxAmount),
+    taxSlab: `${taxSlab}${surcharge > 0 ? ` + ${surcharge > taxAmount * 0.1 ? '15%' : '10%'} surcharge` : ''}`,
+    finalLiability: Math.round(finalLiability),
+  };
+};
+
+export const calculateTax = (formData: TaxFormData, userType: string): TaxComparisonResult => {
+  const oldRegime = calculateOldRegimeTax(formData, userType);
+  const newRegime = calculateNewRegimeTax(formData, userType);
+
+  const recommendedRegime = oldRegime.finalLiability < newRegime.finalLiability ? 'old' : 'new';
+  const savings = Math.abs(oldRegime.finalLiability - newRegime.finalLiability);
+
+  return {
+    oldRegime,
+    newRegime,
+    recommendedRegime,
+    savings
+  };
+};
+
+export const saveTaxCalculation = async (userId: string, formData: TaxFormData, userType: string, result: TaxComparisonResult) => {
   const currentYear = new Date().getFullYear();
   const assessmentYear = `${currentYear}-${currentYear + 1}`;
-  
+
   try {
-    console.log("Saving calculation for user:", userId);
-    console.log("Form data:", formData);
-    console.log("Results:", result);
-    
     const { data, error } = await supabase.from('tax_calculations').insert({
       user_id: userId,
       assessment_year: assessmentYear,
@@ -73,31 +180,31 @@ export const saveTaxCalculation = async (userId: string, formData: TaxFormData, 
       other_income: formData.otherIncome || 0,
       capital_gains: formData.capitalGains || 0,
       business_income: formData.businessIncome || 0,
-      total_income: 
-        (formData.salary || 0) + 
-        (formData.otherIncome || 0) + 
-        (formData.capitalGains || 0) + 
-        (formData.businessIncome || 0) + 
+      rental_income: formData.rentalIncome || 0,
+      total_income:
+        (formData.salary || 0) +
+        (formData.otherIncome || 0) +
+        (formData.capitalGains || 0) +
+        (formData.businessIncome || 0) +
         (formData.rentalIncome || 0),
       deductions_80c: formData.section80C || 0,
       deductions_80d: formData.section80D || 0,
-      deductions_other: formData.section80G || 0,
-      total_deductions: 
-        (formData.section80C || 0) + 
-        (formData.section80D || 0) + 
+      deductions_80g: formData.section80G || 0,
+      total_deductions:
+        (formData.section80C || 0) +
+        (formData.section80D || 0) +
         (formData.section80G || 0),
-      taxable_income: result.taxableIncome,
-      tax_payable: result.taxAmount,
-      cess: result.finalLiability - result.taxAmount,
-      final_tax: result.finalLiability,
+      taxable_income_old: result.oldRegime.taxableIncome,
+      tax_payable_old: result.oldRegime.taxAmount,
+      final_tax_old: result.oldRegime.finalLiability,
+      taxable_income_new: result.newRegime.taxableIncome,
+      tax_payable_new: result.newRegime.taxAmount,
+      final_tax_new: result.newRegime.finalLiability,
+      recommended_regime: result.recommendedRegime,
+      savings: result.savings,
     }).select();
-    
-    if (error) {
-      console.error("Error in saveTaxCalculation:", error);
-      throw error;
-    }
-    
-    console.log("Calculation saved successfully:", data);
+
+    if (error) throw error;
     return data;
   } catch (error) {
     console.error('Error saving tax calculation:', error);
@@ -107,20 +214,14 @@ export const saveTaxCalculation = async (userId: string, formData: TaxFormData, 
 
 export const fetchUserTaxCalculations = async (userId: string) => {
   try {
-    console.log("Fetching calculations for user:", userId);
     const { data, error } = await supabase
       .from('tax_calculations')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(5);
-    
-    if (error) {
-      console.error("Error in fetchUserTaxCalculations:", error);
-      throw error;
-    }
-    
-    console.log("Fetched calculations:", data);
+
+    if (error) throw error;
     return data || [];
   } catch (error) {
     console.error('Error fetching tax calculations:', error);
