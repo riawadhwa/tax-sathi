@@ -25,6 +25,31 @@ const TaxChecklist = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+
+  // Load saved checklist on mount and user type change
+  useEffect(() => {
+    const loadChecklist = async () => {
+      if (!user) return;
+
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('documents')
+        .select('extraction_data')
+        .eq('user_id', user.id)
+        .eq('document_type', 'checklist')
+        .eq('file_name', `${userType}_checklist`)
+        .single();
+
+      if (data?.extraction_data) {
+        setCheckedItems(data.extraction_data as Record<string, boolean>);
+      }
+      setLoading(false);
+    };
+
+    loadChecklist();
+  }, [user, userType]);
+
+
   const checklistData: Record<UserType, ChecklistItem[]> = {
     individual: [
       { id: 'pan', name: 'PAN Card', description: 'Permanent Account Number card', required: true },
@@ -119,7 +144,6 @@ const TaxChecklist = () => {
   const saveProgress = async () => {
     if (!user) return;
 
-    setSaving(true);
     try {
       const { error } = await supabase
         .from('documents')
@@ -130,15 +154,19 @@ const TaxChecklist = () => {
           file_path: `checklists/${user.id}/${userType}_checklist.json`,
           extraction_data: checkedItems,
           updated_at: new Date().toISOString()
+
+        }, {
+          onConflict: 'user_id,document_type,file_name'
+
         });
 
       if (error) throw error;
       toast.success("Progress saved successfully");
     } catch (error) {
-      console.error("Save error:", error);
+
+
       toast.error("Failed to save progress");
-    } finally {
-      setSaving(false);
+      console.error(error);
     }
   };
 

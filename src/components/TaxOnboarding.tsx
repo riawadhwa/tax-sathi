@@ -40,7 +40,9 @@ const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
   const verifyPANWithAadhaar = async () => {
     if (!validatePAN(formData.panNumber)) {
       toast.error("Invalid PAN", {
-        description: "Please enter a valid PAN number"
+
+
+        description: "Please enter a valid PAN number (format: AAAAA9999A)"
       });
       return false;
     }
@@ -53,10 +55,29 @@ const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
     }
 
     setVerificationStatus('verifying');
-
+  
     try {
-      // Mock verification for college project - replace with real API call if needed
-      const isVerified = await mockVerificationAPI(formData.panNumber, formData.aadhaarNumber);
+      const response = await fetch('https://verify-pan-aadhaar-link1.p.rapidapi.com/getEntity', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-RapidAPI-Host': 'verify-pan-aadhaar-link1.p.rapidapi.com',
+          //'X-RapidAPI-Key': '38eb8eda63msh49802dab6b7cae5p1908f3jsn19a24308a149'
+        },
+        body: JSON.stringify({
+          pan: formData.panNumber.toUpperCase(),
+          aadhaarNumber: formData.aadhaarNumber
+        })
+      });
+  
+      const data = await response.json();
+      console.log("API Response:", data); // For debugging
+  
+      // Check if the response indicates successful linking
+      const isVerified = data.messages?.some(
+        (msg: any) => msg.code === "EF40124" && msg.type === "INFO" && msg.desc.includes("already linked")
+      );
+  
 
       if (isVerified) {
         setVerificationStatus('verified');
@@ -64,14 +85,19 @@ const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
       } else {
         setVerificationStatus('failed');
         toast.error("Verification Failed", {
-          description: "PAN not linked with Aadhaar"
+
+          description: data.messages?.[0]?.desc || "PAN not linked with Aadhaar"
+
         });
         return false;
       }
     } catch (error) {
+
+      console.error('Verification error:', error);
       setVerificationStatus('failed');
-      toast.error("Error", {
-        description: "Verification service unavailable"
+      toast.error("Verification Error", {
+        description: error instanceof Error ? error.message : "Service unavailable"
+
       });
       return false;
     }
