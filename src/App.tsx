@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,7 @@ import FormChecklist from "./pages/FormChecklist";
 import InvestmentBudget from "./pages/InvestmentBudget";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import FloatingChatButton from "./components/FloatingChatButton";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +32,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <FloatingChatButton />
         </TooltipProvider>
       </AuthProvider>
     </BrowserRouter>

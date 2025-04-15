@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { CustomTooltip } from "@/components/ui/CustomTooltip";
 import { Info } from "lucide-react";
+import { toast } from 'sonner';
 
 const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
   const [step, setStep] = useState(1);
@@ -20,9 +21,10 @@ const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
     dateOfBirth: '',
     userType: '',
   });
+  const [verificationStatus, setVerificationStatus] = useState<'unverified' | 'verifying' | 'verified' | 'failed'>('unverified');
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prevData => ({
@@ -30,54 +32,108 @@ const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
       [name]: value,
     }));
   };
-  
+
+  // Simple validation functions
+  const validatePAN = (pan: string) => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan);
+  const validateAadhaar = (aadhaar: string) => /^\d{12}$/.test(aadhaar);
+
+  const verifyPANWithAadhaar = async () => {
+    if (!validatePAN(formData.panNumber)) {
+      toast.error("Invalid PAN", {
+        description: "Please enter a valid PAN number"
+      });
+      return false;
+    }
+
+    if (!validateAadhaar(formData.aadhaarNumber)) {
+      toast.error("Invalid Aadhaar", {
+        description: "Please enter a valid 12-digit Aadhaar number"
+      });
+      return false;
+    }
+
+    setVerificationStatus('verifying');
+
+    try {
+      // Mock verification for college project - replace with real API call if needed
+      const isVerified = await mockVerificationAPI(formData.panNumber, formData.aadhaarNumber);
+
+      if (isVerified) {
+        setVerificationStatus('verified');
+        return true;
+      } else {
+        setVerificationStatus('failed');
+        toast.error("Verification Failed", {
+          description: "PAN not linked with Aadhaar"
+        });
+        return false;
+      }
+    } catch (error) {
+      setVerificationStatus('failed');
+      toast.error("Error", {
+        description: "Verification service unavailable"
+      });
+      return false;
+    }
+  };
+
+  // Mock verification function (replace with real API call if needed)
+  const mockVerificationAPI = async (pan: string, aadhaar: string) => {
+    // For demo purposes, return true if last 4 digits match
+    const panLast4 = pan.slice(5, 9);
+    const aadhaarLast4 = aadhaar.slice(8, 12);
+    return panLast4 === aadhaarLast4; // Simple mock verification logic
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       console.error('User not authenticated');
       return;
     }
-    
+
+    // Verify PAN-Aadhaar before submission
+    const isVerified = await verifyPANWithAadhaar();
+    if (!isVerified) return;
+
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('profiles')
-        .upsert([
-          {
-            id: user.id,
-            full_name: formData.fullName,
-            pan_number: formData.panNumber,
-            aadhaar_number: formData.aadhaarNumber,
-            address: formData.address,
-            phone_number: formData.phoneNumber,
-            date_of_birth: formData.dateOfBirth,
-            user_type: formData.userType,
-          },
-        ]);
-      
-      if (error) {
-        console.error('Error saving profile:', error);
-        return;
-      }
-      
-      console.log('Profile updated:', data);
+        .upsert([{
+          id: user.id,
+          full_name: formData.fullName,
+          pan_number: formData.panNumber,
+          aadhaar_number: formData.aadhaarNumber,
+          address: formData.address,
+          phone_number: formData.phoneNumber,
+          date_of_birth: formData.dateOfBirth,
+          user_type: formData.userType,
+          pan_verified: true // Simple flag for verification
+        }]);
+
+      if (error) throw error;
+
       onComplete();
       navigate('/calculator');
     } catch (error) {
-      console.error('Unexpected error:', error);
+      console.error('Error saving profile:', error);
+      toast.error("Error", {
+        description: "Failed to save profile"
+      });
     }
   };
-  
+
   const nextStep = () => {
     setStep(prevStep => prevStep + 1);
   };
-  
+
   const prevStep = () => {
     setStep(prevStep => prevStep - 1);
   };
-  
+
   const renderStepContent = () => {
     switch (step) {
       case 1:
-        return <PersonalInfoStep formData={formData} handleChange={handleChange} />;
+        return <PersonalInfoStep formData={formData} handleChange={handleChange} verificationStatus={verificationStatus} />;
       case 2:
         return <ContactInfoStep formData={formData} handleChange={handleChange} />;
       case 3:
@@ -86,7 +142,7 @@ const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
         return null;
     }
   };
-  
+
   return (
     <Card className="max-w-md mx-auto mt-8">
       <CardHeader>
@@ -115,7 +171,7 @@ const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
   );
 };
 
-const PersonalInfoStep = ({ formData, handleChange }: any) => {
+const PersonalInfoStep = ({ formData, handleChange, verificationStatus }: any) => {
   return (
     <div>
       <div className="grid gap-4">
@@ -134,7 +190,7 @@ const PersonalInfoStep = ({ formData, handleChange }: any) => {
         <div className="grid gap-2">
           <div className="flex items-center gap-2">
             <Label>PAN Number</Label>
-            <CustomTooltip 
+            <CustomTooltip
               content="Your Permanent Account Number is required for tax identification"
               side="right"
             >
@@ -158,6 +214,17 @@ const PersonalInfoStep = ({ formData, handleChange }: any) => {
             onChange={handleChange}
           />
         </div>
+
+        {/* Add verification status indicator */}
+        {verificationStatus === 'verifying' && (
+          <div className="text-sm text-blue-500">Verifying PAN-Aadhaar link...</div>
+        )}
+        {verificationStatus === 'verified' && (
+          <div className="text-sm text-green-500">✓ PAN-Aadhaar verified</div>
+        )}
+        {verificationStatus === 'failed' && (
+          <div className="text-sm text-red-500">PAN-Aadhaar verification failed</div>
+        )}
       </div>
     </div>
   );
