@@ -40,18 +40,20 @@ const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
   const verifyPANWithAadhaar = async () => {
     if (!validatePAN(formData.panNumber)) {
       toast.error("Invalid PAN", {
+
+
         description: "Please enter a valid PAN number (format: AAAAA9999A)"
       });
       return false;
     }
-  
+
     if (!validateAadhaar(formData.aadhaarNumber)) {
       toast.error("Invalid Aadhaar", {
         description: "Please enter a valid 12-digit Aadhaar number"
       });
       return false;
     }
-  
+
     setVerificationStatus('verifying');
   
     try {
@@ -76,21 +78,26 @@ const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
         (msg: any) => msg.code === "EF40124" && msg.type === "INFO" && msg.desc.includes("already linked")
       );
   
+
       if (isVerified) {
         setVerificationStatus('verified');
         return true;
       } else {
         setVerificationStatus('failed');
         toast.error("Verification Failed", {
+
           description: data.messages?.[0]?.desc || "PAN not linked with Aadhaar"
+
         });
         return false;
       }
     } catch (error) {
+
       console.error('Verification error:', error);
       setVerificationStatus('failed');
       toast.error("Verification Error", {
         description: error instanceof Error ? error.message : "Service unavailable"
+
       });
       return false;
     }

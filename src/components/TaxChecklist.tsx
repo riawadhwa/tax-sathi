@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +23,8 @@ const TaxChecklist = () => {
   const [userType, setUserType] = useState<UserType>('individual');
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
 
   // Load saved checklist on mount and user type change
   useEffect(() => {
@@ -47,6 +48,7 @@ const TaxChecklist = () => {
 
     loadChecklist();
   }, [user, userType]);
+
 
   const checklistData: Record<UserType, ChecklistItem[]> = {
     individual: [
@@ -84,6 +86,45 @@ const TaxChecklist = () => {
     ],
   };
 
+  // Load saved checklist on mount and user type change
+  useEffect(() => {
+    const loadChecklist = async () => {
+      if (!user) return;
+
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('documents')
+          .select('extraction_data')
+          .eq('user_id', user.id)
+          .eq('document_type', 'checklist')
+          .eq('file_name', `${userType}_checklist`)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        // Initialize with all items unchecked if no data exists
+        if (data?.extraction_data) {
+          setCheckedItems(data.extraction_data as Record<string, boolean>);
+        } else {
+          // Initialize with all items unchecked
+          const initialCheckedItems: Record<string, boolean> = {};
+          checklistData[userType].forEach(item => {
+            initialCheckedItems[item.id] = false;
+          });
+          setCheckedItems(initialCheckedItems);
+        }
+      } catch (error) {
+        console.error("Error loading checklist:", error);
+        toast.error("Failed to load checklist");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadChecklist();
+  }, [user, userType]);
+
   const handleCheckboxChange = (id: string, checked: boolean) => {
     setCheckedItems(prev => ({
       ...prev,
@@ -92,7 +133,11 @@ const TaxChecklist = () => {
   };
 
   const resetChecklist = () => {
-    setCheckedItems({});
+    const resetItems: Record<string, boolean> = {};
+    checklistData[userType].forEach(item => {
+      resetItems[item.id] = false;
+    });
+    setCheckedItems(resetItems);
     toast.success("Checklist has been reset");
   };
 
@@ -109,13 +154,17 @@ const TaxChecklist = () => {
           file_path: `checklists/${user.id}/${userType}_checklist.json`,
           extraction_data: checkedItems,
           updated_at: new Date().toISOString()
+
         }, {
           onConflict: 'user_id,document_type,file_name'
+
         });
 
       if (error) throw error;
       toast.success("Progress saved successfully");
     } catch (error) {
+
+
       toast.error("Failed to save progress");
       console.error(error);
     }
@@ -128,7 +177,6 @@ const TaxChecklist = () => {
   const requiredItems = currentChecklist.filter(item => item.required);
   const optionalItems = currentChecklist.filter(item => !item.required);
 
-  // Add loading state
   if (loading) {
     return (
       <Card className="w-full">
@@ -173,6 +221,7 @@ const TaxChecklist = () => {
                         id={item.id}
                         checked={checkedItems[item.id] || false}
                         onCheckedChange={(checked) => handleCheckboxChange(item.id, checked as boolean)}
+                        disabled={loading || saving}
                       />
                       <div className="space-y-1">
                         <Label htmlFor={item.id} className="font-medium">{item.name}</Label>
@@ -190,6 +239,7 @@ const TaxChecklist = () => {
                         id={item.id}
                         checked={checkedItems[item.id] || false}
                         onCheckedChange={(checked) => handleCheckboxChange(item.id, checked as boolean)}
+                        disabled={loading || saving}
                       />
                       <div className="space-y-1">
                         <Label htmlFor={item.id} className="font-medium">{item.name}</Label>
@@ -201,8 +251,20 @@ const TaxChecklist = () => {
               </div>
 
               <div className="flex space-x-4 justify-center mt-8">
-                <Button variant="outline" onClick={resetChecklist}>Reset Checklist</Button>
-                <Button className="bg-taxBlue hover:bg-taxBlue-dark" onClick={saveProgress}>Save Progress</Button>
+                <Button
+                  variant="outline"
+                  onClick={resetChecklist}
+                  disabled={loading || saving}
+                >
+                  Reset Checklist
+                </Button>
+                <Button
+                  className="bg-taxBlue hover:bg-taxBlue-dark"
+                  onClick={saveProgress}
+                  disabled={loading || saving}
+                >
+                  {saving ? "Saving..." : "Save Progress"}
+                </Button>
               </div>
             </TabsContent>
           ))}

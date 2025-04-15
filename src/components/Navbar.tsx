@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, User, LogOut } from 'lucide-react';
@@ -22,7 +21,7 @@ const Navbar = () => {
   const { user, signOut } = useAuth();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  
+
   const navItems = [
     { name: 'Home', path: '/' },
     { name: 'Calculator', path: '/calculator' },
@@ -44,9 +43,9 @@ const Navbar = () => {
 
           {/* Mobile menu button */}
           {isMobile && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={toggleMenu}
               className="md:hidden"
             >
@@ -73,7 +72,7 @@ const Navbar = () => {
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-taxBlue text-white">
-                        {user.user_metadata?.full_name ? 
+                        {user.user_metadata?.full_name ?
                           user.user_metadata.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase() :
                           user.email?.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
@@ -118,7 +117,7 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
-            
+
             {/* Auth buttons for mobile */}
             {user ? (
               <div className="px-3 py-2 flex justify-between items-center border-t border-gray-200 mt-2 pt-2">
