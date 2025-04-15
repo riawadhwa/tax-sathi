@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { CustomTooltip } from "@/components/ui/CustomTooltip";
 import { Info } from "lucide-react";
+import { toast } from '@/components/ui/use-toast';
 
 const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
   const [step, setStep] = useState(1);

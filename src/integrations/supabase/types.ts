@@ -169,33 +169,33 @@ export type Database = {
       }
       tax_calculations: {
         Row: {
-          advance_tax_paid: number | null
-          assessment_year: string
-          business_income: number | null
-          capital_gains: number | null
-          cess: number | null
-          created_at: string | null
-          deductions_80c: number | null
-          deductions_80d: number | null
-          deductions_hra: number | null
-          deductions_other: number | null
-          final_tax: number | null
-          id: string
-          net_tax_payable: number | null
-          other_income: number | null
-          refund_due: number | null
-          salary_income: number | null
-          selected_regime: string | null
-          surcharge: number | null
-          tax_new_regime: number | null
-          tax_old_regime: number | null
-          tax_payable: number | null
-          taxable_income: number | null
-          tds_deducted: number | null
-          total_deductions: number | null
-          total_income: number | null
-          updated_at: string | null
-          user_id: string
+          id: string;
+          user_id: string;
+          advance_tax_paid: number | null;
+          assessment_year: string;
+          business_income: number | null;
+          capital_gains: number | null;
+          cess: number | null;
+          created_at: string | null;
+          deductions_80c: number | null;
+          deductions_80d: number | null;
+          deductions_hra: number | null;
+          deductions_other: number | null;
+          final_tax: number | null;
+          net_tax_payable: number | null;
+          other_income: number | null;
+          refund_due: number | null;
+          salary_income: number | null;
+          selected_regime: string | null;
+          surcharge: number | null;
+          tax_new_regime: number | null;
+          tax_old_regime: number | null;
+          tax_payable: number | null;
+          taxable_income: number | null;
+          tds_deducted: number | null;
+          total_deductions: number | null;
+          total_income: number | null;
+          updated_at: string | null;
           rental_income: number | null;
           section_80G: number | null;
           section_80E: number | null;
@@ -205,33 +205,33 @@ export type Database = {
           esop_value: number | null;
         }
         Insert: {
-          advance_tax_paid?: number | null
-          assessment_year: string
-          business_income?: number | null
-          capital_gains?: number | null
-          cess?: number | null
-          created_at?: string | null
-          deductions_80c?: number | null
-          deductions_80d?: number | null
-          deductions_hra?: number | null
-          deductions_other?: number | null
-          final_tax?: number | null
-          id?: string
-          net_tax_payable?: number | null
-          other_income?: number | null
-          refund_due?: number | null
-          salary_income?: number | null
-          selected_regime?: string | null
-          surcharge?: number | null
-          tax_new_regime?: number | null
-          tax_old_regime?: number | null
-          tax_payable?: number | null
-          taxable_income?: number | null
-          tds_deducted?: number | null
-          total_deductions?: number | null
-          total_income?: number | null
-          updated_at?: string | null
-          user_id: string
+          id?: string;
+          user_id: string;
+          advance_tax_paid?: number | null;
+          assessment_year: string;
+          business_income?: number | null;
+          capital_gains?: number | null;
+          cess?: number | null;
+          created_at?: string | null;
+          deductions_80c?: number | null;
+          deductions_80d?: number | null;
+          deductions_hra?: number | null;
+          deductions_other?: number | null;
+          final_tax?: number | null;
+          net_tax_payable?: number | null;
+          other_income?: number | null;
+          refund_due?: number | null;
+          salary_income?: number | null;
+          selected_regime?: string | null;
+          surcharge?: number | null;
+          tax_new_regime?: number | null;
+          tax_old_regime?: number | null;
+          tax_payable?: number | null;
+          taxable_income?: number | null;
+          tds_deducted?: number | null;
+          total_deductions?: number | null;
+          total_income?: number | null;
+          updated_at?: string | null;
           rental_income?: number | null;
           section_80G?: number | null;
           section_80E?: number | null;
@@ -241,33 +241,33 @@ export type Database = {
           esop_value?: number | null;
         }
         Update: {
-          advance_tax_paid?: number | null
-          assessment_year?: string
-          business_income?: number | null
-          capital_gains?: number | null
-          cess?: number | null
-          created_at?: string | null
-          deductions_80c?: number | null
-          deductions_80d?: number | null
-          deductions_hra?: number | null
-          deductions_other?: number | null
-          final_tax?: number | null
-          id?: string
-          net_tax_payable?: number | null
-          other_income?: number | null
-          refund_due?: number | null
-          salary_income?: number | null
-          selected_regime?: string | null
-          surcharge?: number | null
-          tax_new_regime?: number | null
-          tax_old_regime?: number | null
-          tax_payable?: number | null
-          taxable_income?: number | null
-          tds_deducted?: number | null
-          total_deductions?: number | null
-          total_income?: number | null
-          updated_at?: string | null
-          user_id?: string
+          id?: string;
+          user_id?: string;
+          advance_tax_paid?: number | null;
+          assessment_year?: string;
+          business_income?: number | null;
+          capital_gains?: number | null;
+          cess?: number | null;
+          created_at?: string | null;
+          deductions_80c?: number | null;
+          deductions_80d?: number | null;
+          deductions_hra?: number | null;
+          deductions_other?: number | null;
+          final_tax?: number | null;
+          net_tax_payable?: number | null;
+          other_income?: number | null;
+          refund_due?: number | null;
+          salary_income?: number | null;
+          selected_regime?: string | null;
+          surcharge?: number | null;
+          tax_new_regime?: number | null;
+          tax_old_regime?: number | null;
+          tax_payable?: number | null;
+          taxable_income?: number | null;
+          tds_deducted?: number | null;
+          total_deductions?: number | null;
+          total_income?: number | null;
+          updated_at?: string | null;
           rental_income?: number | null;
           section_80G?: number | null;
           section_80E?: number | null;
@@ -413,6 +413,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_checklists: {
+        Row: {
+          id: string;
+          user_id: string;
+          user_type: 'individual' | 'business' | 'startup';
+          checklist_items: Record<string, boolean>;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          user_type: 'individual' | 'business' | 'startup';
+          checklist_items: Record<string, boolean>;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          user_type?: 'individual' | 'business' | 'startup';
+          checklist_items?: Record<string, boolean>;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_checklists_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     }
     Views: {
       [_ in never]: never
