@@ -55,29 +55,29 @@ const TaxOnboarding = ({ onComplete }: { onComplete: () => void }) => {
     }
 
     setVerificationStatus('verifying');
-  
+
     try {
       const response = await fetch('https://verify-pan-aadhaar-link1.p.rapidapi.com/getEntity', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-RapidAPI-Host': 'verify-pan-aadhaar-link1.p.rapidapi.com',
-          //'X-RapidAPI-Key': '38eb8eda63msh49802dab6b7cae5p1908f3jsn19a24308a149'
+          'X-RapidAPI-Key': '38eb8eda63msh49802dab6b7cae5p1908f3jsn19a24308a149'
         },
         body: JSON.stringify({
           pan: formData.panNumber.toUpperCase(),
           aadhaarNumber: formData.aadhaarNumber
         })
       });
-  
+
       const data = await response.json();
       console.log("API Response:", data); // For debugging
-  
+
       // Check if the response indicates successful linking
       const isVerified = data.messages?.some(
         (msg: any) => msg.code === "EF40124" && msg.type === "INFO" && msg.desc.includes("already linked")
       );
-  
+
 
       if (isVerified) {
         setVerificationStatus('verified');

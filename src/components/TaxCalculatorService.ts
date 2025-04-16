@@ -41,23 +41,24 @@ export const calculateOldRegimeTax = (formData: TaxFormData, userType: string): 
 
   taxableIncome = Math.max(0, taxableIncome);
 
-  // Old regime tax slabs (FY 2023-24) with rebate under section 87A
-  taxAmount = 0;
+  // Old regime tax slabs (FY 2023-24)
   if (taxableIncome <= 250000) {
+    taxAmount = 0;
     taxSlab = '0%';
   } else if (taxableIncome <= 500000) {
     taxAmount = (taxableIncome - 250000) * 0.05;
     taxSlab = '5%';
-    // Rebate under section 87A (up to ₹12,500)
-    if (taxableIncome <= 750000) {
-      taxAmount = Math.max(0, taxAmount - Math.min(taxAmount, 12500));
-    }
   } else if (taxableIncome <= 1000000) {
     taxAmount = 12500 + (taxableIncome - 500000) * 0.2;
     taxSlab = '20%';
   } else {
     taxAmount = 112500 + (taxableIncome - 1000000) * 0.3;
     taxSlab = '30%';
+  }
+
+  // Apply rebate under section 87A for income up to ₹5 lakhs
+  if (taxableIncome <= 500000) {
+    taxAmount = 0;
   }
 
   // Apply surcharge for income > 50 lakhs
@@ -105,32 +106,30 @@ export const calculateNewRegimeTax = (formData: TaxFormData, userType: string): 
 
   taxableIncome = Math.max(0, taxableIncome);
 
-  // New regime tax slabs (FY 2023-24) with rebate under section 87A
-  if (taxableIncome <= 250000) {
+  // New regime tax slabs (FY 2023-24)
+  if (taxableIncome <= 300000) {
     taxAmount = 0;
     taxSlab = '0%';
-  } else if (taxableIncome <= 500000) {
-    taxAmount = (taxableIncome - 250000) * 0.05;
+  } else if (taxableIncome <= 600000) {
+    taxAmount = (taxableIncome - 300000) * 0.05;
     taxSlab = '5%';
-    // Rebate under section 87A (up to ₹25,000)
-    if (taxableIncome <= 700000) {
-      taxAmount = Math.max(0, taxAmount - Math.min(taxAmount, 25000));
-    }
-  } else if (taxableIncome <= 750000) {
-    taxAmount = 12500 + (taxableIncome - 500000) * 0.1;
+  } else if (taxableIncome <= 900000) {
+    taxAmount = 15000 + (taxableIncome - 600000) * 0.1;
     taxSlab = '10%';
-  } else if (taxableIncome <= 1000000) {
-    taxAmount = 37500 + (taxableIncome - 750000) * 0.15;
+  } else if (taxableIncome <= 1200000) {
+    taxAmount = 45000 + (taxableIncome - 900000) * 0.15;
     taxSlab = '15%';
-  } else if (taxableIncome <= 1250000) {
-    taxAmount = 75000 + (taxableIncome - 1000000) * 0.2;
-    taxSlab = '20%';
   } else if (taxableIncome <= 1500000) {
-    taxAmount = 125000 + (taxableIncome - 1250000) * 0.25;
-    taxSlab = '25%';
+    taxAmount = 90000 + (taxableIncome - 1200000) * 0.2;
+    taxSlab = '20%';
   } else {
-    taxAmount = 187500 + (taxableIncome - 1500000) * 0.3;
+    taxAmount = 150000 + (taxableIncome - 1500000) * 0.3;
     taxSlab = '30%';
+  }
+
+  // Apply rebate under section 87A for income up to ₹7 lakhs
+  if (taxableIncome <= 700000) {
+    taxAmount = 0;
   }
 
   // Apply surcharge for income > 50 lakhs
